@@ -15,7 +15,7 @@ directive @transform(
   name: String
   custom_type: String
   repeated: Boolean
-  oneof: Boolean
+  oneof: String
   map_key: String
   map_value: String
 ) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM_VALUE | SCALAR | UNION | INTERFACE | ENUM | INPUT_OBJECT | OBJECT
