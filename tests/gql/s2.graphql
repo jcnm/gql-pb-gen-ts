@@ -7,7 +7,7 @@ type UserToken {
   applicationID: ID
   platform: String @exclude
   token: String! @exclude
-  expiresIn: Int!
+  expiresIn: Int! @transform(type: "int", name: "expires_in")
   createdAt: DateTime! 
   newTokenGeneratedAt: DateTime @exclude
   updatedAt: DateTime @exclude

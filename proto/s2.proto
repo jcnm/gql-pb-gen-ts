@@ -15,9 +15,16 @@ message UserToken {
     string userTokenID = 1;
     string userID = 2;
     string applicationID = 3;
-    int32 expiresIn = 4;
+    int expires_in = 4;
     DateTime createdAt = 5;
 
+}enum UserType {
+  robot = 0;
+  client = 1;
+  developer = 2;
+  analyzer = 3;
+  moderator = 4;
+  administrator = 5;
 }
 // END GENERATED MESSAGES
 

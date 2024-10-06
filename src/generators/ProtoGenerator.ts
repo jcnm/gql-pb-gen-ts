@@ -4,12 +4,14 @@ import { GraphQLParser } from '../parsers/GraphQLParser';
 import { DirectiveParser } from '../parsers/DirectiveParser'; 
 import { join } from 'path';
 import { Config } from '../config/Config';
-import { GraphQLObjectType, GraphQLType, isNonNullType, isListType, isScalarType, isObjectType, isEnumType, isAbstractType, isCompositeType, isDirective, isOutputType, isInputType, isInputObjectType, isInterfaceType, isNamedType, isUnionType, ObjectTypeDefinitionNode, TypeNode } from 'graphql';
-import { ParsedDirectives, ScalarType } from '../types/index';
+import { ObjectTypeDefinitionNode, TypeNode } from 'graphql';
+import { ParsedDirectives } from '../types/index';
 import { ProtoField } from './../protobuf/ProtoField.js'; 
 import { ProtoMessage } from './../protobuf/ProtoMessage.js'; 
 import { writeProtobufTemplateFile }  from '../utils/TemplateProcessor.js';
 import { writeFile } from '../utils/File.js';
+
+type transformInterface = { type: string, repeated: boolean, name: string, custom_type?: string};
 
 /*
   * ProtoGenerator generates protobuf message definitions from GraphQL types.
@@ -83,21 +85,22 @@ export class ProtoGenerator {
         }
   
         let fieldTypeInfo = this.resolveType(field.type);
-  
+        let enhancedTypeInfo:transformInterface|null = fieldTypeInfo as transformInterface;
+        enhancedTypeInfo.name = fieldName;
+        
         if (directives.transform) {
-          fieldTypeInfo = this.applyTransform(fieldTypeInfo, directives.transform);
+          enhancedTypeInfo = this.applyTransform(enhancedTypeInfo, directives.transform);
         }
   
-        if (!fieldTypeInfo) {
+        if (!enhancedTypeInfo) {
           console.warn(`Type for field ${fieldName} could not be resolved.`);
           continue;
         }
-  
-        const protoField = new ProtoField(
-          fieldTypeInfo.type,
-          fieldName,
+       const protoField = new ProtoField(
+          enhancedTypeInfo.type,
+          enhancedTypeInfo.name,
           fieldNumber++,
-          fieldTypeInfo.repeated
+          enhancedTypeInfo.repeated
         );
   
         if (directives.secure) {
@@ -157,9 +160,9 @@ export class ProtoGenerator {
   }
 
   private applyTransform(
-    fieldTypeInfo: { type: string; repeated: boolean } | null,
+    fieldTypeInfo: transformInterface | null,
     transform: ParsedDirectives['transform']
-  ): { type: string; repeated: boolean } | null {
+  ): transformInterface | null {
     if (fieldTypeInfo && transform){
       // Override type
       if (transform.type) {
@@ -169,6 +172,10 @@ export class ProtoGenerator {
           fieldTypeInfo.type = `map<${transform.map_key}, ${transform.map_value}>`;
           fieldTypeInfo.repeated = false;
         }
+      }
+      // Override name
+      if (transform.name) {
+        fieldTypeInfo.name = transform.name ;
       }
       // Override repeated
       if (typeof transform.repeated === 'boolean') {

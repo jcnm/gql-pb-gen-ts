@@ -21,6 +21,7 @@ export class DirectiveParser {
         } else if (name === 'transform') {
           parsedDirectives.transform = {
             type: args.type as string,
+            name: args.name as string,
             custom_type: args.custom_type as string,
             repeated: args.repeated === true,
             oneof: args.oneof as string,

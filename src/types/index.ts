@@ -1,12 +1,5 @@
-// src/types/index.ts
-export type ScalarType =
-  | 'String'
-  | 'Int'
-  | 'Float'
-  | 'Boolean'
-  | 'ID';
 
-  // src/types/index.d.ts
+// src/types/index.d.ts
 
 export interface ParsedDirectives {
     exclude?: boolean,
@@ -15,6 +8,7 @@ export interface ParsedDirectives {
     },
     transform?: {
       type: string;
+      name: string,
       custom_type?: string,
       repeated?: boolean,
       oneof?: string, 
