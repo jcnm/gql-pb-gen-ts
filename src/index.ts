@@ -19,10 +19,10 @@ import { Logger } from './utils/Logger.js';
 async function main() {
   try {
     const config = new Config({
-      schemaPath: './s2.graphql',
+      schemaPath: './s1.graphql',
       endpointUrl: 'https://dev-gateway.sh1.hidora.net/graphql',
       outputDir: './proto',
-      protoOutputPath: './proto/s2.proto',
+      protoOutputPath: './proto/s1.proto',
       customDirectives: ['./directives.graphql'],
       protoTemplatePath: './templates/messages.proto.in', 
       templatePlaceHolder: '{{ generated_messages }}',

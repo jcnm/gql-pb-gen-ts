@@ -11,7 +11,14 @@ message ExistingMessage {
 }
 
 // BEGIN GENERATED MESSAGES
-
+enum UserType {
+  robot = 0;
+  client = 1;
+  developer = 2;
+  analyzer = 3;
+  moderator = 4;
+  administrator = 5;
+}
 // END GENERATED MESSAGES
 
 // Additional definitions
