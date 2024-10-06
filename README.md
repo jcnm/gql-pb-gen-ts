@@ -1,5 +1,5 @@
 
-# GraphQL Protobuff generator for TypeScript
+# GraphQL Protobuff generator
 
 ## Addressed problematics
 
