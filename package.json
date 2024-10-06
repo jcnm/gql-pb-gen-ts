@@ -1,15 +1,15 @@
 {
   "name": "@sylorion/gql-pb-gen",
-  "description": "#GraphQL Protobuff generator for TypeScript",
+  "description": "GraphQL Protobuff generator for TypeScript",
   "main": "index.js",
   "type": "module",
   "files": [
     "/build"
   ],
   "scripts": {
-    "build": "tsc ",
+    "build": "tsc",
     "test": "jest",
-    "start": "npm run build ; node --trace-deprecation build/index.js ",
+    "start": "npm run build ; node --trace-deprecation build/index.js",
     "lint": "eslint 'src/**/*.{ts,js}' --fix"
   },
   "devDependencies": {
