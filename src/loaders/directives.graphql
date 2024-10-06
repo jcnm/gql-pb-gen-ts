@@ -1,14 +1,10 @@
+
 directive @exclude on 
-FIELD_DEFINITION 
-| INPUT_FIELD_DEFINITION 
-| ARGUMENT_DEFINITION 
-| ENUM_VALUE 
-| SCALAR 
-| UNION 
-| INTERFACE 
-| ENUM 
-| INPUT_OBJECT 
-| OBJECT
+FIELD_DEFINITION | INPUT_FIELD_DEFINITION 
+| UNION | INTERFACE | ENUM | OBJECT
+
+directive @secure(hash: string, comment: string) on 
+FIELD_DEFINITION | INPUT_FIELD_DEFINITION | UNION | INTERFACE | ENUM_VALUE 
 
 directive @transform(
   type: String!
