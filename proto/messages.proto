@@ -1,0 +1,158 @@
+
+syntax = "proto3";
+
+message Application {
+  string applicationID = 1;
+  string uniqRef = 2;
+  string slug = 3;
+  string title = 4;
+  string description = 5;
+  string officialName = 6;
+  string developerID = 7;
+  string authKey = 8;
+  string plan = 9;
+  bool isOfficialApp = 10;
+  ObjectStatus state = 11;
+}
+
+message ApplicationToken {
+  string applicationTokenID = 1;
+  string applicationID = 2;
+  string key = 3;
+  string slug = 4;
+  string uniqRef = 5;
+  bool isActive = 6;
+}
+
+message Heartbeat {
+  int32 interval = 1;
+  int32 timeOut = 2;
+  int32 timeOutCount = 3;
+  int32 heartbeat = 4;
+  int32 maxTimeOut = 5;
+}
+
+message LoginResponse {
+  string accessToken = 1;
+  string refreshToken = 2;
+  int32 accessValidityDuration = 3;
+  int32 refreshValidityDuration = 4;
+  UserDetails user = 5;
+  string message = 6;
+  repeated MutationError errors = 7;
+}
+
+message LogoutResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message Mutation {
+  ApplicationToken createApplicationToken = 1;
+  ApplicationToken updateApplicationToken = 2;
+  MutationResponse deleteApplicationToken = 3;
+  UserToken createUserToken = 4;
+  UserToken updateUserToken = 5;
+  bool deleteUserToken = 6;
+  User createUser = 7;
+  User updateUser = 8;
+  MutationResponse deleteUser = 9;
+  LoginResponse login = 10;
+  User signup = 11;
+  MutationResponse logout = 12;
+  TokenRefreshResponse refreshUserToken = 13;
+  MutationResponse forgotPassword = 14;
+  Application createApplication = 15;
+  Application updateApplication = 16;
+  MutationResponse deleteApplication = 17;
+}
+
+message MutationError {
+  string message = 1;
+  string field = 2;
+  int32 code = 3;
+}
+
+message MutationResponse {
+  bool success = 1;
+  string message = 2;
+  int32 code = 3;
+}
+
+message Query {
+  ApplicationToken applicationToken = 1;
+  repeated ApplicationToken applicationTokens = 2;
+  ApplicationToken applicationTokenBySlug = 3;
+  repeated ApplicationToken applicationTokensByIDs = 4;
+  repeated ApplicationToken applicationTokensBySlugs = 5;
+  ApplicationToken applicationTokenByUniqRef = 6;
+  UserToken userToken = 7;
+  repeated UserToken userTokens = 8;
+  UserToken userTokenByToken = 9;
+  repeated UserToken userTokensByUserIDs = 10;
+  repeated UserToken userTokensByApplicationIDs = 11;
+  repeated UserToken userTokensByPlatforms = 12;
+  User user = 13;
+  repeated User users = 14;
+  User userByUsername = 15;
+  User userByEmail = 16;
+  User userByUniqRef = 17;
+  repeated User usersByIDs = 18;
+  repeated User usersBySlugs = 19;
+  User userBySlug = 20;
+  Application application = 21;
+  repeated Application applications = 22;
+  Application applicationBySlug = 23;
+  repeated Application applicationsByIDs = 24;
+  repeated Application applicationsBySlugs = 25;
+  Application applicationByUniqRef = 26;
+  string authenticationHello = 27;
+  string authenticationVersion = 28;
+  Heartbeat authenticationHeartbeat = 29;
+  int32 authenticationRequestCounter = 30;
+}
+
+message TokenRefreshResponse {
+  string accessToken = 1;
+  int32 expiresIn = 2;
+  string message = 3;
+  repeated MutationError errors = 4;
+}
+
+message User {
+  string userID = 1;
+  string uniqRef = 2;
+  string slug = 3;
+  string username = 4;
+  string email = 5;
+  string plan = 6;
+  string profileID = 7;
+  UserType userKind = 8;
+  bool twoFactorEnabled = 9;
+  int32 loginDuration = 10;
+  string rsaPublicKey = 11;
+  ObjectStatus state = 12;
+}
+
+message UserDetails {
+  string userID = 1;
+  string uniqRef = 2;
+  string slug = 3;
+  string username = 4;
+  string email = 5;
+  string plan = 6;
+  string profileID = 7;
+  bool twoFactorEnabled = 8;
+  int32 loginDuration = 9;
+  ObjectStatus state = 10;
+}
+
+message UserToken {
+  string userTokenID = 1;
+  string userID = 2;
+  string applicationID = 3;
+  string platform = 4;
+  string token = 5;
+  int32 expiresIn = 6;
+}
+
