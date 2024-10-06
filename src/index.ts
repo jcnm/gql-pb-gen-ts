@@ -3,7 +3,6 @@ console.log("Hello, world!");
 // src/index.ts
 import { Config } from './config/Config.js';
 import { SchemaLoader } from './loaders/SchemaLoader.js';
-import { DirectiveLoader } from './loaders/DirectiveLoader.js';
 import { GraphQLParser } from './parsers/GraphQLParser.js';
 import { DirectiveParser } from './parsers/DirectiveParser.js';
 import { ProtoGenerator } from './generators/ProtoGenerator.js';

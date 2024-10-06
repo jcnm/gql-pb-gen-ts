@@ -1,6 +1,5 @@
-import { EnumTypeDefinitionNode } from 'graphql';
-
 // src/generators/ProtoGenerator.ts
+import { EnumTypeDefinitionNode } from 'graphql';
 import { GraphQLParser } from '../parsers/GraphQLParser';
 import { DirectiveParser } from '../parsers/DirectiveParser'; 
 import { join } from 'path';
@@ -10,7 +9,7 @@ import { ParsedDirectives, ScalarType } from '../types/index';
 import { ProtoField } from './../protobuf/ProtoField.js'; 
 import { ProtoMessage } from './../protobuf/ProtoMessage.js'; 
 import { writeProtobufTemplateFile }  from '../utils/TemplateProcessor.js';
-import { readFileSync, writeFileSync } from 'fs';
+import { writeFile } from '../utils/File.js';
 
 /*
   * ProtoGenerator generates protobuf message definitions from GraphQL types.
@@ -54,19 +53,12 @@ export class ProtoGenerator {
     const outputPath = this.config.get('protoOutputPath') || join(this.config.get('outputDir')!, 'messages.proto');
     if(save) {
       if (!templatePath) {
-        this.generateProtobufFile(outputPath, messages);
+        writeFile(outputPath, messages);
       } else {
         writeProtobufTemplateFile(templatePath, outputPath, messages);
       }
     }
     return messages; 
-  }
-
-  private generateProtobufFile(
-    outputPath: string,
-    generatedMessages: string
-  ) {
-    writeFileSync(outputPath, generatedMessages, 'utf-8');
   }
 
   private generateMessages(types: ObjectTypeDefinitionNode[]): ProtoMessage[] {
