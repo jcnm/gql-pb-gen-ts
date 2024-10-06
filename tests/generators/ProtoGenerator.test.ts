@@ -1,79 +1,121 @@
-import { writeFileSync } from 'fs';
+
 // tests/generators/ProtoGenerator.test.ts
 import { ProtoGenerator } from '../../src/generators/ProtoGenerator';
 import { Config } from '../../src/config/Config';
 import { GraphQLParser } from '../../src/parsers/GraphQLParser';
 import { DirectiveParser } from '../../src/parsers/DirectiveParser';
-import { GraphQLSchema, buildSchema } from 'graphql';
-import * as fs from 'fs';
+import { ObjectTypeDefinitionNode, EnumTypeDefinitionNode } from 'graphql';
+import 'jest';
 
-jest.mock('fs');
+jest.mock('../../src/parsers/GraphQLParser');
+jest.mock('../../src/parsers/DirectiveParser');
 
 describe('ProtoGenerator', () => {
-  const mockSchemaSDL = `
-    directive @exclude on FIELD_DEFINITION | INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM_VALUE | SCALAR | UNION | INTERFACE | ENUM | INPUT_OBJECT | OBJECT 
-    directive @transform(type: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM_VALUE | SCALAR | UNION | INTERFACE | ENUM | INPUT_OBJECT | OBJECT 
-
-    type User {
-      id: ID!
-      username: String!
-      email: String! @exclude
-      profile: Profile @transform(type: "mask")
-    }
-
-    type Profile {
-      bio: String
-      age: Int
-    }
-  `;
-
-  let schema: GraphQLSchema;
-  let config: Config;
-  let graphQLParser: GraphQLParser;
-  let directiveParser: DirectiveParser;
   let protoGenerator: ProtoGenerator;
+  let mockConfig: Config;
+  let mockGraphQLParser: GraphQLParser;
+  let mockDirectiveParser: DirectiveParser;
 
   beforeEach(() => {
-    schema = buildSchema(mockSchemaSDL);
-    config = new Config({ outputDir: './generated' });
-    graphQLParser = new GraphQLParser(schema);
-    directiveParser = new DirectiveParser();
-    protoGenerator = new ProtoGenerator(config, graphQLParser, directiveParser);
+    mockConfig = new Config();
+    mockGraphQLParser = new GraphQLParser({} as any);
+    mockDirectiveParser = new DirectiveParser();
 
-    jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+    protoGenerator = new ProtoGenerator(mockConfig, mockGraphQLParser, mockDirectiveParser);
   });
 
-  afterEach(() => {
-    jest.resetAllMocks();
+  test('should generate protobuf messages from object types', async () => {
+    jest.spyOn(mockGraphQLParser, 'getObjectTypes').mockReturnValue([
+      { name: { value: 'TestObject' }, fields: [] } as ObjectTypeDefinitionNode,
+    ]);
+
+    const result = await protoGenerator.generate(false);
+    expect(result).toContain('message TestObject');
   });
 
-  it('should generate protobuf messages excluding fields with @exclude', () => {
-    protoGenerator.generate();
+  test('should generate enums from enum types', async () => {
+    jest.spyOn(mockGraphQLParser, 'getEnumTypes').mockReturnValue([
+      { name: { value: 'TestEnum' }, values: [{ name: { value: 'VALUE1' } }] } as EnumTypeDefinitionNode,
+    ]);
 
-    const expectedOutput = expect.stringContaining('message User');
-    expect(fs.writeFileSync).toHaveBeenCalledWith(
-      expect.any(String),
-      expectedOutput
-    );
-
-    const writtenContent = (fs.writeFileSync as jest.Mock).mock.calls[0][1];
-
-    expect(writtenContent).toContain('string id = 1;');
-    expect(writtenContent).toContain('string username = 2;');
-    expect(writtenContent).not.toContain('string email =');
-    expect(writtenContent).toContain('Profile profile = 3;');
+    const result = await protoGenerator.generate(false);
+    expect(result).toContain('enum TestEnum');
   });
 
-  it('should apply transformations based on @transform directive', async () => {
-    // Mock the `applyTransformations` method with the correct signature
-    jest.spyOn(protoGenerator as any, 'applyTransformations').mockImplementation((...args: unknown[]) => {
-      return `// transformed\n${args[0]}`;
-    });
+  test('should not generate messages for excluded types', async () => {
+    jest.spyOn(mockGraphQLParser, 'getObjectTypes').mockReturnValue([
+      { name: { value: 'TestObject' }, fields: [], directives: [{ name: { value: 'exclude' } }] } as ObjectTypeDefinitionNode,
+    ]);
+    jest.spyOn(mockDirectiveParser, 'parseDirectives').mockReturnValue({ exclude: true });
 
-    await protoGenerator.generate();
-
-    const writtenContent = (fs.writeFileSync as jest.Mock).mock.calls[0][1];
-    expect(writtenContent).toContain('// transformed\n');
+    const result = await protoGenerator.generate(false);
+    expect(result).not.toContain('message TestObject');
   });
 
+  test('should apply field transformations', async () => {
+    jest.spyOn(mockGraphQLParser, 'getObjectTypes').mockReturnValue([
+      {
+        name: { value: 'TestObject' },
+        fields: [{ name: { value: 'field' }, type: { kind: 'NamedType', name: { value: 'String' } } }],
+      } as ObjectTypeDefinitionNode,
+    ]);
+    jest.spyOn(mockDirectiveParser, 'parseDirectives').mockReturnValue({ transform: { type: 'int32' } });
+
+    const result = await protoGenerator.generate(false);
+    expect(result).toContain('int32 field = 1;');
+  });
+
+  test('should handle repeated fields', async () => {
+    jest.spyOn(mockGraphQLParser, 'getObjectTypes').mockReturnValue([
+      {
+        name: { value: 'TestObject' },
+        fields: [{ name: { value: 'field' }, type: { kind: 'ListType', type: { kind: 'NamedType', name: { value: 'String' } } } }],
+      } as ObjectTypeDefinitionNode,
+    ]);
+
+    const result = await protoGenerator.generate(false);
+    expect(result).toContain('repeated string field = 1;');
+  });
+
+  test('should secure fields with comments', async () => {
+    jest.spyOn(mockGraphQLParser, 'getObjectTypes').mockReturnValue([
+      {
+        name: { value: 'TestObject' },
+        fields: [{ name: { value: 'field' }, type: { kind: 'NamedType', name: { value: 'String' } } }],
+      } as ObjectTypeDefinitionNode,
+    ]);
+    jest.spyOn(mockDirectiveParser, 'parseDirectives').mockReturnValue({ secure: { hash: 'SHA256' } });
+
+    const result = await protoGenerator.generate(false);
+    expect(result).toContain('// Field is secured with hash: SHA256');
+  });
+
+  test('should handle oneof group fields', async () => {
+    jest.spyOn(mockGraphQLParser, 'getObjectTypes').mockReturnValue([
+      {
+        name: { value: 'TestObject' },
+        fields: [{ name: { value: 'field' }, type: { kind: 'NamedType', name: { value: 'String' } } }],
+      } as ObjectTypeDefinitionNode,
+    ]);
+    jest.spyOn(mockDirectiveParser, 'parseDirectives').mockReturnValue({ transform: { oneof: 'group1' } });
+
+    const result = await protoGenerator.generate(false);
+    expect(result).toContain('oneof group1');
+  });
+
+  test('should resolve non-null types correctly', () => {
+    const result = protoGenerator['resolveType']({ kind: 'NonNullType', type: { kind: 'NamedType', name: { value: 'String' } } });
+    expect(result).toEqual({ type: 'string', repeated: false });
+  });
+
+  test('should map custom scalar types', () => {
+    protoGenerator['typeMapping'] = { CustomScalar: 'custom' };
+    const result = protoGenerator['resolveType']({ kind: 'NamedType', name: { value: 'CustomScalar' } });
+    expect(result).toEqual({ type: 'custom', repeated: false });
+  });
+
+  test('should return null for unrecognized type nodes', () => {
+    const result = protoGenerator['resolveType']({ kind: 'InvalidType' } as any);
+    expect(result).toBeNull();
+  });
 });

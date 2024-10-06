@@ -1,71 +1,46 @@
-// tests/loaders/SchemaLoader.test.ts
 import { SchemaLoader } from '../../src/loaders/SchemaLoader';
 import { Config } from '../../src/config/Config';
-import { GraphQLSchema } from 'graphql';
-import * as fs from 'fs';
-import { globalAgent } from 'http';
-import fetch from 'node-fetch';
+import { readFileSync, existsSync } from 'fs';
 
-jest.mock('fs'); 
-jest.mock('node-fetch'); 
-(fetch as unknown as jest.Mock).mockImplementation(async (url: string, options: any) => {
-  // Mock implementation
-  return {} as any;
-});
-
-// (global.fetch as jest.Mock).mockImplementation((path, data) => {
-//   // Simulate a file write error
-//   return {} as any;
-// });
-
+jest.mock('fs');
+global.fetch = jest.fn();
 
 describe('SchemaLoader', () => {
-  afterEach(() => {
-    jest.resetAllMocks();
+  let schemaLoader: SchemaLoader;
+  let mockConfig: Config;
+
+  beforeEach(() => {
+    mockConfig = new Config();
+    schemaLoader = new SchemaLoader(mockConfig);
   });
 
-  it('should load schema from file', async () => {
-      const config = new Config({ schemaPath: 'schema.graphql' });
-      const mockSchemaContent = `
-      type Query {
-          hello: String
-      }
-      `;
-      jest.spyOn(fs, 'readFileSync').mockReturnValue(mockSchemaContent);
+  test('should load schema from file', async () => {
+    (existsSync as jest.Mock).mockReturnValue(true);
+    (readFileSync as jest.Mock).mockReturnValue('type Query { test: String }');
 
-      const schemaLoader = new SchemaLoader(config);
-      const schema = await schemaLoader.loadSchema();
+    mockConfig.get = jest.fn().mockReturnValue('schema.graphql');
 
-      expect(fs.readFileSync).toHaveBeenCalledWith('schema.graphql', 'utf-8');
-      expect(schema.getType('Query')).toBeDefined();
-  }); 
-  
-  // it('should load schema from endpoint', async () => {
-  //   const config = new Config({ endpointUrl: 'https://dev-gateway.sh1.hidora.net/graphql' });
-  //   const mockResponse = {
-  //     json: jest.fn().mockResolvedValue({
-  //       data: {
-  //         __schema: {
-  //           queryType: { name: 'Query' },
-  //           types: [{ kind: 'OBJECT', name: 'Query', fields: [] }],
-  //         },
-  //       },
-  //     }),
-  //   };
-  //   (fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue(mockResponse as any);
+    const result = await schemaLoader.loadSchemaAST();
 
-  //   const schemaLoader = new SchemaLoader(config);
-  //   const schema = await schemaLoader.loadSchema();
+    expect(result).toBeDefined();
+    expect(readFileSync).toHaveBeenCalledWith('schema.graphql', 'utf-8');
+  });
 
-  //   expect(fetch).toHaveBeenCalledWith('https://dev-gateway.sh1.hidora.net/graphql', expect.any(Object));
-  //   expect(schema.getType('Query')).toBeDefined();
-  // });
+  test('should throw error if no schema source is provided', async () => {
+    mockConfig.get = jest.fn().mockReturnValue(undefined);
 
-  it('should throw an error if no schema source provided', async () => {
-    const config = new Config({});
-    const schemaLoader = new SchemaLoader(config);
+    await expect(schemaLoader.loadSchemaAST()).rejects.toThrow('No schema source provided.');
+  });
 
-    await expect(schemaLoader.loadSchema()).rejects.toThrow('No schema source provided.');
+  test('should load schema from endpoint', async () => {
+    mockConfig.get = jest.fn().mockReturnValue('http://localhost/graphql');
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: {}, errors: null }),
+    });
+
+    const result = await schemaLoader.loadSchemaAST();
+
+    expect(result).toBeDefined();
   });
 });
-

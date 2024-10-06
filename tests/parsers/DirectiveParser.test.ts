@@ -1,35 +1,28 @@
-// tests/parsers/DirectiveParser.test.ts
 import { DirectiveParser } from '../../src/parsers/DirectiveParser';
-import { parse, buildSchema, GraphQLField } from 'graphql';
+import { DirectiveNode } from 'graphql';
 
 describe('DirectiveParser', () => {
-  it('should parse directives on a field', () => {
-    const schemaSDL = `
-      directive @exclude on FIELD_DEFINITION
-      directive @transform(type: String) on FIELD_DEFINITION
+  let directiveParser: DirectiveParser;
 
-      type User {
-        id: ID!
-        email: String! @exclude
-        profile: Profile @transform(type: "mask")
-      }
+  beforeEach(() => {
+    directiveParser = new DirectiveParser();
+  });
 
-      type Profile {
-        bio: String
-      }
-    `;
-    const schema = buildSchema(schemaSDL);
-    const userType = schema.getType('User');
-    const fields = (userType as any).getFields() as Record<string, GraphQLField<any, any>>;
-    const directiveParser = new DirectiveParser();
+  test('should parse exclude directive', () => {
+    const directives: ReadonlyArray<DirectiveNode> = [{ name: { value: 'exclude' } } as DirectiveNode];
+    const result = directiveParser.parseDirectives(directives);
 
-    const emailDirectives = directiveParser.parseFieldDirectives(fields.email);
-    expect(emailDirectives.exclude).toBe(true);
+    expect(result).toEqual({ exclude: true });
+  });
 
-    const profileDirectives = directiveParser.parseFieldDirectives(fields.profile);
-    expect(profileDirectives.transform).toBe('mask');
-
-    const idDirectives = directiveParser.parseFieldDirectives(fields.id);
-    expect(idDirectives).toEqual({});
+  test('should parse secure directive with hash', () => {
+    const directives: ReadonlyArray<DirectiveNode> = [{
+      name: { value: 'secure' },
+      arguments: [{ name: { value: 'hash' }, value: { kind: 'StringValue', value: 'SHA256' } }]
+    } as DirectiveNode];
+    
+    const result = directiveParser.parseDirectives(directives);
+    
+    expect(result).toEqual({ secure: { hash: 'SHA256' } });
   });
 });

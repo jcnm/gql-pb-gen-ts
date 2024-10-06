@@ -1,30 +1,37 @@
-// tests/parsers/GraphQLParser.test.ts
 import { GraphQLParser } from '../../src/parsers/GraphQLParser';
-import { buildSchema, GraphQLObjectType } from 'graphql';
+import { parse } from 'graphql';
 
 describe('GraphQLParser', () => {
-  it('should retrieve object types from schema', () => {
-    const schemaSDL = `
+  test('should extract object types from schema', () => {
+    const schema = parse(`
       type Query {
-        hello: String
+        test: String
       }
-
-      type User {
-        id: ID!
-        name: String!
+      
+      type TestObject {
+        id: ID
       }
-
-      scalar Date
-    `;
-    const schema = buildSchema(schemaSDL);
+    `);
+    
     const parser = new GraphQLParser(schema);
+    const objectTypes = parser.getObjectTypes();
 
-    const types = parser.getTypes();
+    expect(objectTypes.length).toBe(1);
+    expect(objectTypes[0].name.value).toBe('TestObject');
+  });
 
-    expect(types).toHaveLength(2);
-    const typeNames = types.map(type => type.name);
-    expect(typeNames).toContain('Query');
-    expect(typeNames).toContain('User');
-    expect(typeNames).not.toContain('Date');
+  test('should extract enum types from schema', () => {
+    const schema = parse(`
+      enum TestEnum {
+        VALUE1
+        VALUE2
+      }
+    `);
+
+    const parser = new GraphQLParser(schema);
+    const enumTypes = parser.getEnumTypes();
+
+    expect(enumTypes.length).toBe(1);
+    expect(enumTypes[0].name.value).toBe('TestEnum');
   });
 });
