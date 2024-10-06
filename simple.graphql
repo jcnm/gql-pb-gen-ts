@@ -1,0 +1,146 @@
+
+scalar Date
+scalar DateTime
+scalar File
+scalar JSON
+
+input CreateUserInput {
+  username: String
+  email: String!
+  password: String!
+  plan: String
+  userKind: UserType
+  twoFactorEnabled: Boolean
+  rsaPublicKey: String
+  state: ObjectStatus
+}
+
+input FilterInput {
+  field: String
+  value: String
+  operator: String
+}
+
+input SortInput {
+  field: String
+  order: String
+}
+
+input PaginationInput {
+  limit: Int
+  offset: Int
+}
+
+enum FollowableEntity {
+  service
+  organization
+  topic
+}
+
+type Heartbeat {
+  lastPing: Date
+  interval: Int
+  timeOut: Int
+  timeOutCount: Int
+  heartbeat: Int
+  maxTimeOut: Int
+}
+
+type Mutation { 
+  createUser(input: CreateUserInput!): User! 
+}
+
+type MutationError {
+  message: String!
+  field: String
+  code: Int
+}
+
+type MutationResponse {
+  success: Boolean!
+  message: String
+  code: Int
+}
+
+enum ObjectStatus {
+  offline
+  staging
+  awaiting
+  reviewed
+  rejected
+  signaled
+  online
+  archived
+}
+
+type Query {
+  users(pagination: PaginationInput, sort: SortInput, filter: [FilterInput!]): [User!]!
+}
+
+interface ServicesEntity {
+  uniqRef: String
+}
+
+interface ServicesNavigableEntity {
+  slug: String
+}
+
+interface ServicesStatable {
+  state: ObjectStatus
+}
+
+type User implements ServicesEntity & ServicesNavigableEntity & ServicesStatable {
+  userID: ID!
+  uniqRef: String
+  slug: String @exclude
+  username: String
+  email: String
+  plan: String
+  profileID: ID
+  userKind: UserType
+  lastLogin: DateTime
+  twoFactorEnabled: Boolean
+  loginDuration: Int
+  rsaPublicKey: String
+  state: ObjectStatus
+  createdAt: DateTime
+  updatedAt: DateTime
+  deletedAt: DateTime
+}
+
+type UserDetails {
+  userID: ID! 
+  uniqRef: String
+  slug: String @exclude
+  username: String
+  email: String
+  plan: String
+  profileID: ID
+  lastLogin: DateTime @exclude
+  twoFactorEnabled: Boolean @exclude
+  loginDuration: Int
+  state: ObjectStatus
+  updatedAt: DateTime
+}
+
+type UserToken {
+  userTokenID: ID!
+  userID: ID!
+  applicationID: ID
+  platform: String
+  token: String!
+  expiresIn: Int!
+  createdAt: DateTime!
+  newTokenGeneratedAt: DateTime
+  updatedAt: DateTime
+  deletedAt: DateTime
+}
+
+enum UserType {
+  robot
+  client
+  developer
+  analyzer
+  moderator
+  administrator
+}

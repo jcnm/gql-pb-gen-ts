@@ -1,0 +1,24 @@
+
+scalar Date
+scalar DateTime 
+type UserToken {
+  userTokenID: ID!
+  userID: ID!
+  applicationID: ID
+  platform: String @exclude
+  token: String! @exclude
+  expiresIn: Int!
+  createdAt: DateTime! 
+  newTokenGeneratedAt: DateTime @exclude
+  updatedAt: DateTime @exclude
+  deletedAt: DateTime @exclude
+}
+
+enum UserType {
+  robot
+  client
+  developer
+  analyzer
+  moderator
+  administrator
+}

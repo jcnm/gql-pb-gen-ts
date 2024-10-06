@@ -4,7 +4,12 @@ export interface ConfigOptions {
   endpointUrl?: string;
   outputDir?: string;
   customDirectives?: string[];
+  protoTemplatePath?: string;
+  protoOutputPath?: string;
+  templatePlaceHolder?: string; 
+
 }
+
 
 export class Config {
   private options: ConfigOptions;

@@ -1,12 +1,11 @@
-// src/loaders/SchemaLoader.ts
-import { readFileSync } from 'fs';
-import { buildClientSchema, getIntrospectionQuery, printSchema, buildSchema, } from 'graphql';
+import { parse, buildClientSchema, getIntrospectionQuery, printSchema, buildSchema } from 'graphql';
+import { readFileSync, existsSync } from 'fs';
 export class SchemaLoader {
     constructor(config) {
         this.config = config;
     }
-    async loadSchema() {
-        if (this.config.get('schemaPath')) {
+    async loadSchemaAST() {
+        if (this.config.get('schemaPath') && existsSync(this.config.get('schemaPath'))) {
             return this.loadFromFile(this.config.get('schemaPath'));
         }
         else if (this.config.get('endpointUrl')) {
@@ -18,7 +17,7 @@ export class SchemaLoader {
     }
     loadFromFile(path) {
         const schemaContent = readFileSync(path, 'utf-8');
-        return buildSchema(schemaContent);
+        return parse(schemaContent);
     }
     async loadFromSDLEndpoint(url) {
         const sdlResponse = await fetch(`${url}/sdl`, {
@@ -42,14 +41,9 @@ export class SchemaLoader {
         if (errors) {
             throw new Error(`Failed to fetch schema from endpoint: ${errors.map((e) => e.message).join(', ')}`);
         }
-        const introspectionData = data;
-        // Build the schema from introspection data
-        const schema = buildClientSchema(introspectionData);
-        console.log(JSON.stringify(data, null, 2));
-        // Optionally, print the schema in SDL format if needed
+        const schema = buildClientSchema(data);
+        // Convert the schema back to SDL and parse it to get the AST
         const sdl = printSchema(schema);
-        console.log("\n\n\n\n\n Outputting SDL \n\n\n\n\n");
-        console.log(sdl);
-        return schema;
+        return parse(sdl);
     }
 }

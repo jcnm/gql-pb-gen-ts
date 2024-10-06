@@ -1,9 +1,9 @@
-import { Config } from '../config/Config.js';
-import { GraphQLSchema } from 'graphql';
+import { Config } from '../config/Config';
+import { DocumentNode } from 'graphql';
 export declare class SchemaLoader {
     private config;
     constructor(config: Config);
-    loadSchema(): Promise<GraphQLSchema>;
+    loadSchemaAST(): Promise<DocumentNode>;
     private loadFromFile;
     private loadFromSDLEndpoint;
     private loadFromEndpoint;

@@ -1,0 +1,14 @@
+
+scalar Date
+scalar DateTime
+scalar File
+scalar JSON
+
+enum UserType {
+  robot
+  client
+  developer
+  analyzer
+  moderator
+  administrator
+}

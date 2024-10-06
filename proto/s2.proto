@@ -1,0 +1,24 @@
+// templates/messages.proto.template
+
+syntax = "proto3";
+
+package mypackage;
+
+// Existing message definitions
+message ExistingMessage {
+  int32 id = 1;
+  string name = 2;
+}
+
+// BEGIN GENERATED MESSAGES
+message UserToken {
+    string userTokenID = 1;
+    string userID = 2;
+    string applicationID = 3;
+    int32 expiresIn = 4;
+    DateTime createdAt = 5;
+
+}
+// END GENERATED MESSAGES
+
+// Additional definitions

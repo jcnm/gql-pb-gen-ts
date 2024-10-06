@@ -1,12 +1,37 @@
 // src/parsers/GraphQLParser.ts
-import { GraphQLSchema, GraphQLObjectType, isObjectType } from 'graphql';
+import { DocumentNode, visit, ObjectTypeDefinitionNode, EnumTypeDefinitionNode } from 'graphql';
 
 export class GraphQLParser {
-  constructor(private schema: GraphQLSchema) {}
+  private schemaAst: DocumentNode;
+  private objectTypes: ObjectTypeDefinitionNode[] = [];
+  private enumTypes: EnumTypeDefinitionNode[] = [];
 
-  getTypes() {
-    return Object.values(this.schema.getTypeMap()).filter(
-      type => isObjectType(type) && !type.name.startsWith('__')
-    ) as GraphQLObjectType[];
+  constructor(schemaAst: DocumentNode) {
+    this.schemaAst = schemaAst;
+    this.extractTypes();
   }
+
+  private extractTypes() {
+    visit(this.schemaAst, {
+      ObjectTypeDefinition: (node) => {
+        if (!node.name.value.startsWith('__')) {
+          this.objectTypes.push(node);
+        }
+      },
+      EnumTypeDefinition: (node) => {
+        this.enumTypes.push(node);
+      },
+      // Add more visitors for interfaces, unions, etc., if needed
+    });
+  }
+
+  getObjectTypes(): ObjectTypeDefinitionNode[] {
+    return this.objectTypes;
+  }
+
+  getEnumTypes(): EnumTypeDefinitionNode[] {
+    return this.enumTypes;
+  }
+
+  // TODO: add methods to get interfaces, unions, etc.
 }

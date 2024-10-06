@@ -6,6 +6,20 @@ export type ScalarType =
   | 'Boolean'
   | 'ID';
 
-export interface TypeMapping {
-  [key: string]: string;
-}
+  // src/types/index.d.ts
+
+export interface ParsedDirectives {
+    exclude?: boolean,
+    secure?: {
+      hash: string,
+    },
+    transform?: {
+      type: string;
+      custom_type?: string,
+      repeated?: boolean,
+      oneof?: string, 
+      map_key?: string,
+      map_value?: string,
+    },
+    [key: string]: any,
+  }

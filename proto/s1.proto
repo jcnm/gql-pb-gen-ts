@@ -1,0 +1,17 @@
+// templates/messages.proto.template
+
+syntax = "proto3";
+
+package mypackage;
+
+// Existing message definitions
+message ExistingMessage {
+  int32 id = 1;
+  string name = 2;
+}
+
+// BEGIN GENERATED MESSAGES
+
+// END GENERATED MESSAGES
+
+// Additional definitions

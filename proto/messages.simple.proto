@@ -1,0 +1,95 @@
+// templates/messages.proto.template
+
+syntax = "proto3";
+
+package mypackage;
+
+// Existing message definitions
+message ExistingMessage {
+  int32 id = 1;
+  string name = 2;
+}
+
+// BEGIN GENERATED MESSAGES
+message Heartbeat {
+    Date lastPing = 1;
+    int32 interval = 2;
+    int32 timeOut = 3;
+    int32 timeOutCount = 4;
+    int32 heartbeat = 5;
+    int32 maxTimeOut = 6;
+
+}
+
+message Mutation {
+    User createUser = 1;
+
+}
+
+message MutationError {
+    string message = 1;
+    string field = 2;
+    int32 code = 3;
+
+}
+
+message MutationResponse {
+    bool success = 1;
+    string message = 2;
+    int32 code = 3;
+
+}
+
+message Query {
+    repeated User users = 1;
+
+}
+
+message User {
+    string userID = 1;
+    string uniqRef = 2;
+    string username = 3;
+    string email = 4;
+    string plan = 5;
+    string profileID = 6;
+    UserType userKind = 7;
+    DateTime lastLogin = 8;
+    bool twoFactorEnabled = 9;
+    int32 loginDuration = 10;
+    string rsaPublicKey = 11;
+    ObjectStatus state = 12;
+    DateTime createdAt = 13;
+    DateTime updatedAt = 14;
+    DateTime deletedAt = 15;
+
+}
+
+message UserDetails {
+    string userID = 1;
+    string uniqRef = 2;
+    string username = 3;
+    string email = 4;
+    string plan = 5;
+    string profileID = 6;
+    int32 loginDuration = 7;
+    ObjectStatus state = 8;
+    DateTime updatedAt = 9;
+
+}
+
+message UserToken {
+    string userTokenID = 1;
+    string userID = 2;
+    string applicationID = 3;
+    string platform = 4;
+    string token = 5;
+    int32 expiresIn = 6;
+    DateTime createdAt = 7;
+    DateTime newTokenGeneratedAt = 8;
+    DateTime updatedAt = 9;
+    DateTime deletedAt = 10;
+
+}
+// END GENERATED MESSAGES
+
+// Additional definitions

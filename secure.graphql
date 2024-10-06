@@ -1,0 +1,20 @@
+type Payment {
+  amount: Float!
+  credit_card: CreditCard @transform(oneof: "payment_method")
+  paypal: PayPalAccount @transform(oneof: "payment_method")
+  bank_transfer: BankTransfer @transform(oneof: "payment_method")
+}
+
+type CreditCard {
+  card_number: String!
+  expiry_date: String!
+}
+
+type PayPalAccount {
+  email: String!
+}
+
+type BankTransfer {
+  iban: String!
+  swift: String!
+}

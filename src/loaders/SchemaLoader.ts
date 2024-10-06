@@ -1,15 +1,7 @@
 // src/loaders/SchemaLoader.ts
-import { readFileSync } from 'fs';
-import { Config } from '../config/Config.js';
-import {
-  GraphQLSchema,
-  buildClientSchema,
-  getIntrospectionQuery,
-  IntrospectionQuery,
-  printSchema,
-  parse,
-  buildSchema,
-} from 'graphql';
+import { Config } from '../config/Config';
+import { parse, DocumentNode, buildClientSchema, getIntrospectionQuery, printSchema, buildSchema, GraphQLSchema } from 'graphql';
+import { readFileSync, existsSync } from 'fs';
 
 export class SchemaLoader {
   private config: Config;
@@ -18,8 +10,8 @@ export class SchemaLoader {
     this.config = config;
   }
 
-  async loadSchema(): Promise<GraphQLSchema> {
-    if (this.config.get('schemaPath')) {
+  async loadSchemaAST(): Promise<DocumentNode> {
+    if (this.config.get('schemaPath') && existsSync(this.config.get('schemaPath')!)) {
       return this.loadFromFile(this.config.get('schemaPath')!);
     } else if (this.config.get('endpointUrl')) {
       return this.loadFromEndpoint(this.config.get('endpointUrl')!);
@@ -28,10 +20,11 @@ export class SchemaLoader {
     }
   }
 
-  private loadFromFile(path: string): GraphQLSchema {
+  private loadFromFile(path: string): DocumentNode {
     const schemaContent = readFileSync(path, 'utf-8');
-    return buildSchema(schemaContent);
+    return parse(schemaContent);
   }
+
   private async loadFromSDLEndpoint(url: string): Promise<GraphQLSchema> {
     const sdlResponse = await fetch(`${url}/sdl`, {
       method: 'GET',
@@ -46,7 +39,7 @@ export class SchemaLoader {
     return buildSchema(sdlSchema);
   }
 
-  private async loadFromEndpoint(url: string): Promise<GraphQLSchema> {
+  private async loadFromEndpoint(url: string): Promise<DocumentNode> {
     const introspectionQuery = getIntrospectionQuery();
 
     const response = await fetch(url, {
@@ -60,16 +53,11 @@ export class SchemaLoader {
     if (errors) {
       throw new Error(`Failed to fetch schema from endpoint: ${errors.map((e: any) => e.message).join(', ')}`);
     }
-    const introspectionData = data as IntrospectionQuery;
 
-    // Build the schema from introspection data
-    const schema = buildClientSchema(introspectionData);
+    const schema = buildClientSchema(data);
 
-    console.log(JSON.stringify(data, null, 2));
-    // Optionally, print the schema in SDL format if needed
+    // Convert the schema back to SDL and parse it to get the AST
     const sdl = printSchema(schema);
-    console.log("\n\n\n\n\n Outputting SDL \n\n\n\n\n");
-    console.log(sdl);
-    return schema;
+    return parse(sdl);
   }
 }

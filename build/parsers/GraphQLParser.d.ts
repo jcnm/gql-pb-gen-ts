@@ -1,6 +1,10 @@
-import { GraphQLSchema, GraphQLObjectType } from 'graphql';
+import { DocumentNode, ObjectTypeDefinitionNode, EnumTypeDefinitionNode } from 'graphql';
 export declare class GraphQLParser {
-    private schema;
-    constructor(schema: GraphQLSchema);
-    getTypes(): GraphQLObjectType<any, any>[];
+    private schemaAst;
+    private objectTypes;
+    private enumTypes;
+    constructor(schemaAst: DocumentNode);
+    private extractTypes;
+    getObjectTypes(): ObjectTypeDefinitionNode[];
+    getEnumTypes(): EnumTypeDefinitionNode[];
 }

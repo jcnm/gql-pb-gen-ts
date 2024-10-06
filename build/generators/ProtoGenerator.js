@@ -1,6 +1,7 @@
-import { writeFileSync } from 'fs';
 import { join } from 'path';
-import { isNonNullType, isListType, isScalarType, isObjectType, isEnumType, isInterfaceType, isUnionType } from 'graphql';
+import { ProtoField } from './../protobuf/ProtoField.js';
+import { ProtoMessage } from './../protobuf/ProtoMessage.js';
+import { generateProtobufFile } from '../utils/TemplateProcessor.js';
 /*
   * ProtoGenerator generates protobuf message definitions from GraphQL types.
   * It uses the GraphQLParser to extract type information from the schema
@@ -16,76 +17,111 @@ export class ProtoGenerator {
         this.config = config;
         this.graphQLParser = graphQLParser;
         this.directiveParser = directiveParser;
+        // private typeMapping: Record<string, string> = {
+        //   String: 'string',
+        //   Int: 'int32',
+        //   Float: 'float',
+        //   Boolean: 'bool',
+        //   ID: 'string',
+        //   // Add custom scalar mappings as needed
+        // };
         this.typeMapping = {
             String: 'string',
             Int: 'int32',
             Float: 'float',
             Boolean: 'bool',
             ID: 'string',
-            // Add custom scalar mappings as needed
+            Date: 'Date',
+            DateTime: 'DateTime',
+            Time: 'Time',
+            JSON: 'string',
+            JSONB: 'string',
+            UUID: 'string',
+            // Add custom scalars if needed
         };
     }
-    generate() {
-        const types = this.graphQLParser.getTypes();
-        const protoMessages = types.map(type => this.generateMessage(type)).join('\n');
-        const protoContent = `
-syntax = "proto3";
-
-${protoMessages}
-`;
-        const outputPath = join(this.config.get('outputDir'), 'messages.proto');
-        writeFileSync(outputPath, protoContent);
+    async generate() {
+        const objectTypes = this.graphQLParser.getObjectTypes();
+        const messages = this.generateMessages(objectTypes);
+        const generatedMessages = messages.map((msg) => msg.toString()).join('\n\n');
+        const templatePath = this.config.get('protoTemplatePath') || 'messages.proto.template';
+        const outputPath = this.config.get('protoOutputPath') || join(this.config.get('outputDir'), 'messages.proto');
+        generateProtobufFile(templatePath, outputPath, generatedMessages);
     }
-    /**
-     *
-     * @param type  The GraphQLObjectType to generate a message for
-     * @returns   The generated protobuf message definition
-     */
-    generateMessage(type) {
-        const fields = type.getFields();
-        const fieldLines = [];
-        let fieldNumber = 1;
-        for (const [name, field] of Object.entries(fields)) {
-            const directives = this.directiveParser.parseFieldDirectives(field);
-            if (directives.exclude) {
-                continue;
+    generateMessages(types) {
+        const messages = [];
+        for (const typeNode of types) {
+            const typeDirectives = this.directiveParser.parseDirectives(typeNode.directives);
+            if (typeDirectives.exclude) {
+                continue; // Skip the entire type
             }
-            const fieldType = this.resolveType(field.type);
-            if (!fieldType) {
-                console.warn(`Type for field ${name} could not be resolved.`);
-                continue;
+            const message = new ProtoMessage(typeNode.name.value);
+            let fieldNumber = 1;
+            for (const field of typeNode.fields || []) {
+                const fieldName = field.name.value;
+                const directives = this.directiveParser.parseDirectives(field.directives);
+                if (directives.exclude) {
+                    continue; // Skip this field
+                }
+                let fieldTypeInfo = this.resolveType(field.type);
+                if (directives.transform) {
+                    fieldTypeInfo = this.applyTransform(fieldTypeInfo, directives.transform);
+                }
+                if (!fieldTypeInfo) {
+                    console.warn(`Type for field ${fieldName} could not be resolved.`);
+                    continue;
+                }
+                const protoField = new ProtoField(fieldTypeInfo.type, fieldName, fieldNumber++, fieldTypeInfo.repeated);
+                if (directives.secure) {
+                    protoField.addComment(`Field is secured with hash: ${directives.secure.hash}`);
+                }
+                if (directives.transform?.oneof) {
+                    const oneofGroupName = directives.transform.oneof || 'defaultOneofGroup';
+                    message.addToOneof(protoField, oneofGroupName);
+                }
+                else {
+                    message.addField(protoField);
+                }
             }
-            let line = `  ${fieldType} ${name} = ${fieldNumber};`;
-            if (directives.transform) {
-                line = this.applyTransformations(line, directives.transform);
-            }
-            fieldLines.push(line);
-            fieldNumber++;
+            messages.push(message);
         }
-        return `message ${type.name} {\n${fieldLines.join('\n')}\n}\n`;
+        return messages;
     }
-    resolveType(type) {
-        if (isNonNullType(type)) {
-            return this.resolveType(type.ofType);
+    resolveType(typeNode) {
+        if (typeNode.kind === 'NamedType') {
+            const typeName = typeNode.name.value;
+            const mappedType = this.typeMapping[typeName] || typeName;
+            return { type: mappedType, repeated: false };
         }
-        else if (isListType(type)) {
-            const innerType = this.resolveType(type.ofType);
-            return innerType ? `repeated ${innerType}` : null;
+        else if (typeNode.kind === 'NonNullType') {
+            return this.resolveType(typeNode.type);
         }
-        else if (isScalarType(type)) {
-            return this.typeMapping[type.name] || null;
-        }
-        else if (isObjectType(type) || isEnumType(type) || isInterfaceType(type) || isUnionType(type)) {
-            return type.name;
-        }
-        else if (type.name === 'Date' || type.name === 'DateTime') {
-            return type.name;
+        else if (typeNode.kind === 'ListType') {
+            const innerType = this.resolveType(typeNode.type);
+            if (innerType) {
+                return { type: innerType.type, repeated: true };
+            }
         }
         return null;
     }
-    applyTransformations(line, transformType) {
-        // Implement transformation logic based on the transformType
-        // For example, masking or encrypting fields
-        return line; // Placeholder for actual implementation
+    applyTransform(fieldTypeInfo, transform) {
+        if (fieldTypeInfo && transform) {
+            // Override type
+            if (transform.type) {
+                fieldTypeInfo.type = transform.custom_type || transform.type;
+                if (transform.type === 'map' && transform.map_key && transform.map_value) {
+                    fieldTypeInfo.type = `map<${transform.map_key}, ${transform.map_value}>`;
+                    fieldTypeInfo.repeated = false;
+                }
+            }
+            // Override repeated
+            if (typeof transform.repeated === 'boolean') {
+                fieldTypeInfo.repeated = transform.repeated;
+            }
+        }
+        else {
+            return null;
+        }
+        return fieldTypeInfo;
     }
 }

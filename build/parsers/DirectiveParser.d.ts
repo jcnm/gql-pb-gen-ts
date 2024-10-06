@@ -1,10 +1,7 @@
-import { GraphQLField, GraphQLInputField } from 'graphql';
-export interface ParsedDirectives {
-    exclude?: boolean;
-    transform?: string;
-    [key: string]: any;
-}
+import { DirectiveNode } from 'graphql';
+import { ParsedDirectives } from '../types';
 export declare class DirectiveParser {
-    parseFieldDirectives(field: GraphQLField<any, any> | GraphQLInputField): ParsedDirectives;
-    private getArgumentValue;
+    parseDirectives(directives: ReadonlyArray<DirectiveNode> | undefined): ParsedDirectives;
+    private getArguments;
+    private parseValueNode;
 }

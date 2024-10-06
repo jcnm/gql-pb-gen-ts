@@ -1,0 +1,318 @@
+type Application {
+  applicationID: ID!
+  uniqRef: String
+  slug: String
+  title: String
+  description: String
+  officialName: String
+  developerID: ID
+  authKey: String
+  plan: String
+  isOfficialApp: Boolean
+  appConfiguration: JSON
+  state: ObjectStatus
+  createdAt: DateTime!
+  updatedAt: DateTime
+  deletedAt: DateTime
+}
+
+type ApplicationToken {
+  applicationTokenID: ID!
+  applicationID: ID!
+  key: String!
+  slug: String
+  uniqRef: String
+  isActive: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime
+  deletedAt: DateTime
+}
+
+input CreateApplicationInput {
+  userID: ID!
+  title: String!
+  name: String!
+  type: String
+  userTarget: String
+  description: String
+  officialName: String
+  developerID: ID
+  authKey: String
+  plan: String
+  isOfficialApp: Boolean
+  appConfiguration: String
+  state: ObjectStatus
+}
+
+input CreateApplicationTokenInput {
+  applicationID: ID!
+  key: String!
+  isActive: Boolean!
+}
+
+input CreateUserInput {
+  username: String
+  email: String!
+  password: String!
+  plan: String
+  userKind: UserType
+  twoFactorEnabled: Boolean
+  rsaPublicKey: String
+  state: ObjectStatus
+}
+
+input CreateUserTokenInput {
+  userID: ID!
+  applicationID: ID
+  platform: String
+  token: String!
+  expiresIn: Int!
+  newTokenGeneratedAt: DateTime
+}
+
+scalar Date
+
+scalar DateTime
+
+scalar File
+
+input FilterInput {
+  field: String
+  value: String
+  operator: String
+}
+
+enum FollowableEntity {
+  service
+  organization
+  topic
+}
+
+type Heartbeat {
+  lastPing: Date
+  interval: Int
+  timeOut: Int
+  timeOutCount: Int
+  heartbeat: Int
+  maxTimeOut: Int
+}
+
+scalar JSON
+
+input LoginInput {
+  email: String
+  password: String!
+  username: String
+}
+
+type LoginResponse {
+  accessToken: String!
+  refreshToken: String!
+  accessValidityDuration: Int!
+  refreshValidityDuration: Int!
+  user: UserDetails
+  message: String
+  errors: [MutationError!]
+}
+
+type LogoutResponse {
+  success: Boolean!
+  message: String
+}
+
+type Mutation {
+  createApplicationToken(input: CreateApplicationTokenInput!): ApplicationToken!
+  updateApplicationToken(applicationTokenID: ID!, input: UpdateApplicationTokenInput!): ApplicationToken!
+  deleteApplicationToken(applicationTokenID: ID!): MutationResponse!
+  createUserToken(input: CreateUserTokenInput!): UserToken!
+  updateUserToken(userTokenID: ID!, input: UpdateUserTokenInput!): UserToken!
+  deleteUserToken(userTokenID: ID!): Boolean!
+  createUser(input: CreateUserInput!): User!
+  updateUser(userID: ID!, input: UpdateUserInput!): User!
+  deleteUser(userID: ID!): MutationResponse!
+  login(input: LoginInput!): LoginResponse
+  signup(input: CreateUserInput!): User
+  logout(userID: ID): MutationResponse
+  refreshUserToken(token: String!): TokenRefreshResponse
+  forgotPassword(email: String!): MutationResponse
+  createApplication(input: CreateApplicationInput!): Application!
+  updateApplication(applicationID: ID!, input: UpdateApplicationInput!): Application!
+  deleteApplication(applicationID: ID!): MutationResponse!
+}
+
+type MutationError {
+  message: String!
+  field: String
+  code: Int
+}
+
+type MutationResponse {
+  success: Boolean!
+  message: String
+  code: Int
+}
+
+enum ObjectStatus {
+  offline
+  staging
+  awaiting
+  reviewed
+  rejected
+  signaled
+  online
+  archived
+}
+
+input PaginationInput {
+  limit: Int
+  offset: Int
+}
+
+type Query {
+  applicationToken(applicationTokenID: ID!): ApplicationToken
+  applicationTokens: [ApplicationToken!]!
+  applicationTokenBySlug(Slug: String!): ApplicationToken
+  applicationTokensByIDs(applicationTokenIDs: [ID!]!): [ApplicationToken!]!
+  applicationTokensBySlugs(slugs: [String!]!): [ApplicationToken!]!
+  applicationTokenByUniqRef(UniqRef: String!): ApplicationToken!
+  userToken(userTokenID: ID!): UserToken
+  userTokens(pagination: PaginationInput, sort: SortInput, filter: [FilterInput!]): [UserToken!]!
+  userTokenByToken(token: String!): UserToken
+  userTokensByUserIDs(userIDs: [ID!]!): [UserToken!]!
+  userTokensByApplicationIDs(applicationIDs: [ID!]!): [UserToken!]!
+  userTokensByPlatforms(platforms: [String!]!): [UserToken!]!
+  user(userID: ID!): User!
+  users(pagination: PaginationInput, sort: SortInput, filter: [FilterInput!]): [User!]!
+  userByUsername(Username: String!): User!
+  userByEmail(Email: String!): User!
+  userByUniqRef(UniqRef: String!): User!
+  usersByIDs(userIDs: [ID!]!): [User!]!
+  usersBySlugs(slugs: [String!]!): [User!]!
+  userBySlug(Slug: String!): User!
+  application(applicationID: ID!): Application
+  applications(pagination: PaginationInput, sort: SortInput, filter: [FilterInput!]): [Application!]!
+  applicationBySlug(Slug: String!): Application
+  applicationsByIDs(applicationIDs: [ID!]!): [Application!]!
+  applicationsBySlugs(slugs: [String!]!): [Application!]!
+  applicationByUniqRef(UniqRef: String!): Application!
+  authenticationHello: String
+  authenticationVersion: String
+  authenticationHeartbeat: Heartbeat
+  authenticationRequestCounter: Int
+}
+
+interface ServicesEntity {
+  uniqRef: String
+}
+
+interface ServicesNavigableEntity {
+  slug: String
+}
+
+interface ServicesStatable {
+  state: ObjectStatus
+}
+
+input SortInput {
+  field: String
+  order: String
+}
+
+type TokenRefreshResponse {
+  accessToken: String
+  expiresIn: Int
+  message: String
+  errors: [MutationError!]
+}
+
+input UpdateApplicationInput {
+  title: String
+  description: String
+  officialName: String
+  developerID: ID
+  authKey: String
+  plan: String
+  isOfficialApp: Boolean
+  appConfiguration: String
+  state: ObjectStatus
+}
+
+input UpdateApplicationTokenInput {
+  isActive: Boolean
+}
+
+input UpdateUserInput {
+  username: String
+  email: String
+  password: String
+  plan: String
+  profileID: Int
+  userKind: UserType
+  twoFactorEnabled: Boolean
+  rsaPublicKey: String
+  state: ObjectStatus
+}
+
+input UpdateUserTokenInput {
+  applicationID: ID
+  platform: String
+  token: String
+  expiresIn: Int
+  newTokenGeneratedAt: DateTime
+}
+
+type User implements ServicesEntity & ServicesNavigableEntity & ServicesStatable {
+  userID: ID!
+  uniqRef: String
+  slug: String
+  username: String
+  email: String
+  plan: String
+  profileID: ID
+  userKind: UserType
+  lastLogin: DateTime
+  twoFactorEnabled: Boolean
+  loginDuration: Int
+  rsaPublicKey: String
+  state: ObjectStatus
+  createdAt: DateTime
+  updatedAt: DateTime
+  deletedAt: DateTime
+}
+
+type UserDetails {
+  userID: ID!
+  uniqRef: String
+  slug: String
+  username: String
+  email: String
+  plan: String
+  profileID: ID
+  lastLogin: DateTime
+  twoFactorEnabled: Boolean
+  loginDuration: Int
+  state: ObjectStatus
+  updatedAt: DateTime
+}
+
+type UserToken {
+  userTokenID: ID!
+  userID: ID!
+  applicationID: ID
+  platform: String
+  token: String!
+  expiresIn: Int!
+  createdAt: DateTime!
+  newTokenGeneratedAt: DateTime
+  updatedAt: DateTime
+  deletedAt: DateTime
+}
+
+enum UserType {
+  robot
+  client
+  developer
+  analyzer
+  moderator
+  administrator
+}
