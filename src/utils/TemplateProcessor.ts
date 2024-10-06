@@ -2,7 +2,7 @@
 import Handlebars from 'handlebars';
 import { readFileSync, writeFileSync } from 'fs';
 
-export function generateProtobufFile(
+export function writeProtobufTemplateFile(
   templatePath: string,
   outputPath: string,
   generatedMessages: string

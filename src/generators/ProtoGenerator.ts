@@ -1,3 +1,4 @@
+import { EnumTypeDefinitionNode } from 'graphql';
 
 // src/generators/ProtoGenerator.ts
 import { GraphQLParser } from '../parsers/GraphQLParser';
@@ -8,27 +9,16 @@ import { GraphQLObjectType, GraphQLType, isNonNullType, isListType, isScalarType
 import { ParsedDirectives, ScalarType } from '../types/index';
 import { ProtoField } from './../protobuf/ProtoField.js'; 
 import { ProtoMessage } from './../protobuf/ProtoMessage.js'; 
-import { generateProtobufFile }  from '../utils/TemplateProcessor.js';
+import { writeProtobufTemplateFile }  from '../utils/TemplateProcessor.js';
+import { readFileSync, writeFileSync } from 'fs';
 
 /*
   * ProtoGenerator generates protobuf message definitions from GraphQL types.
   * It uses the GraphQLParser to extract type information from the schema
   * and the DirectiveParser to parse custom directives that modify the generated messages.
   * The generated messages are written to a .proto file in the output directory.
-  * The typeMapping property maps GraphQL scalar types to their corresponding protobuf types.
-  * The generateMessage method generates a protobuf message definition for a given GraphQL type.
-  * The resolveType method resolves a GraphQL type to its corresponding protobuf type.
-  * The applyTransformations method applies custom transformations to a field line based on the transformType.
   */
 export class ProtoGenerator {
-  // private typeMapping: Record<string, string> = {
-  //   String: 'string',
-  //   Int: 'int32',
-  //   Float: 'float',
-  //   Boolean: 'bool',
-  //   ID: 'string',
-  //   // Add custom scalar mappings as needed
-  // };
 
   private typeMapping: Record<string, string> = {
     String: 'string',
@@ -51,14 +41,32 @@ export class ProtoGenerator {
     private directiveParser: DirectiveParser
   ) {}
 
-  async generate() {
+  async generate(save: boolean = true): Promise<string> {
     const objectTypes = this.graphQLParser.getObjectTypes();
-    const messages = this.generateMessages(objectTypes);
-    const generatedMessages = messages.map((msg) => msg.toString()).join('\n\n');
+    const objectMessages = this.generateMessages(objectTypes);
+    const generatedObjectMessages = objectMessages.map((msg) => msg.toString()).join('\n\n');
+    const enumsType = this.graphQLParser.getEnumTypes();
+    const enumMessages = this.generateEnums(enumsType);
+    const generatedEnumMessages = enumMessages.map((msg) => msg.toString()).join('\n\n');
 
-    const templatePath = this.config.get('protoTemplatePath') || 'messages.proto.template';
+    const messages = generatedObjectMessages.concat(generatedEnumMessages);
+    const templatePath = this.config.get('protoTemplatePath');
     const outputPath = this.config.get('protoOutputPath') || join(this.config.get('outputDir')!, 'messages.proto');
-    generateProtobufFile(templatePath, outputPath, generatedMessages);
+    if(save) {
+      if (!templatePath) {
+        this.generateProtobufFile(outputPath, messages);
+      } else {
+        writeProtobufTemplateFile(templatePath, outputPath, messages);
+      }
+    }
+    return messages; 
+  }
+
+  private generateProtobufFile(
+    outputPath: string,
+    generatedMessages: string
+  ) {
+    writeFileSync(outputPath, generatedMessages, 'utf-8');
   }
 
   private generateMessages(types: ObjectTypeDefinitionNode[]): ProtoMessage[] {
@@ -118,29 +126,28 @@ export class ProtoGenerator {
     return messages;
   }
   
+  private generateEnums(enumNodes: EnumTypeDefinitionNode[]): string[] {
+    return enumNodes.map((enumNode) => {
+      const enumName = enumNode.name.value;
+      const directives = this.directiveParser.parseDirectives(enumNode.directives);
 
-private generateEnums(enumNodes: EnumTypeDefinitionNode[]): string[] {
-  return enumNodes.map((enumNode) => {
-    const enumName = enumNode.name.value;
-    const directives = this.directiveParser.parseDirectives(enumNode.directives);
+      if (directives.exclude) {
+        return ''; // Skip this enum
+      }
 
-    if (directives.exclude) {
-      return ''; // Skip this enum
-    }
+      let enumTypeName = enumName;
 
-    let enumTypeName = enumName;
+      if (directives.transform?.custom_type) {
+        enumTypeName = directives.transform.custom_type;
+      }
 
-    if (directives.transform?.custom_type) {
-      enumTypeName = directives.transform.custom_type;
-    }
+      const enumValues = enumNode.values?.map((value, index) => {
+        return `  ${value.name.value} = ${index};`;
+      });
 
-    const enumValues = enumNode.values?.map((value, index) => {
-      return `  ${value.name.value} = ${index};`;
+      return `enum ${enumTypeName} {\n${enumValues?.join('\n')}\n}`;
     });
-
-    return `enum ${enumTypeName} {\n${enumValues?.join('\n')}\n}`;
-  });
-}
+  }
   private resolveType(typeNode: TypeNode): { type: string; repeated: boolean } | null {
     if (typeNode.kind === 'NamedType') {
       const typeName = typeNode.name.value;
